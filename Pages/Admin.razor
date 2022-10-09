@@ -1,0 +1,125 @@
+﻿<!--Страница для работы с администраторским функционалом.-->
+
+@page "/admin"
+
+@using WasmSpa.Models
+@using WasmSpa.Services.Users
+@using WasmSpa.Helpers
+@using WasmSpa.Services.Generic
+@using WasmSpa.Enums
+
+@inject UsersDataStoreService _usersDataStoreService
+@inject LocalStorageService<User> _localStorageService
+
+<h3>Admin Panel</h3>
+
+@if (_users == null)
+{
+    <div class="loader"></div>
+}
+else
+{
+    <h4>Users</h4>
+    <div>
+        <button class="btn btn-primary" @onclick="Reload">Reload</button>
+    </div>
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Id</th>
+            <th>Name</th>
+            <th>Password</th>
+            <th>IsAdmin</th>
+            <th>Delete User</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var user in _users.ItemsSet)
+        {
+            <tr>
+                <td>@user.Id</td>
+                <td>@user.Name</td>
+                <td>@SecureUiPasswordHelper.Secure(user.Password)</td>
+                <td>
+                    @if (!IsCurrentOrRootUser(user.Name))
+                    {
+                        <input
+                            type="checkbox"
+                            checked="@IsAdmin(user.Role)"
+                            id="changeUserPerms"
+                            @onchange="() => ChangeUserPerms(user.Name, IsAdmin(user.Role))"/>
+                    }
+                </td>
+                <td>
+                    @if (!IsCurrentOrRootUser(user.Name))
+                    {
+                        <button class="btn" @onclick="() => DeleteUser(user.Name)">🗑️</button>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@code {
+    private UsersStore _users;
+
+    private User _currentUser;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _users = await _usersDataStoreService.GetAllUsers();
+        _currentUser = await _localStorageService.Get();
+    }
+
+    private async Task ChangeUserPerms(string userName, bool isAdmin)
+    {
+        var userToChange = await GetUserToChange(userName);
+
+        userToChange.Role = isAdmin
+            ? UserRole.Default
+            : UserRole.Admin;
+
+        await _usersDataStoreService.UpdateUser(userToChange);
+    }
+
+    private async Task DeleteUser(string userName)
+    {
+        await _usersDataStoreService.DeleteUser(userName);
+
+        await Reload();
+    }
+
+    private bool IsAdmin(UserRole userRole)
+    {
+        return userRole == UserRole.Admin;
+    }
+
+    private bool IsCurrentOrRootUser(string userName)
+    {
+        return IsRootUser(userName) || IsCurrentUser(userName);
+    }
+
+    private bool IsRootUser(string userName)
+    {
+        return RootUserHelper.RootLogin == userName;
+    }
+
+    private bool IsCurrentUser(string userName)
+    {
+        return _currentUser.Name == userName;
+    }
+
+    private async Task Reload()
+    {
+        _users = await _usersDataStoreService.GetAllUsers();
+    }
+
+    private async Task<User> GetUserToChange(string userName)
+    {
+        var userToChange = await _usersDataStoreService.GetUser(userName);
+
+        return userToChange;
+    }
+}

@@ -1,0 +1,28 @@
+﻿<!--Главная страница приложения.-->
+
+@page "/index"
+
+@using WasmSpa.Services.Users
+@using WasmSpa.CustomComponents.Blazor
+
+@inject AuthenticationService _authenticationService
+@inject IJSRuntime _jsRuntime
+
+<CheckAuthentication/>
+
+<h1>Hello, @_username!</h1>
+
+Welcome to your new app.
+
+<SurveyPrompt Title="How is Blazor working for you?"/>
+
+@code
+{
+    private string _username = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var currentUser = await _authenticationService.GetCurrentUser();
+        _username = currentUser.Name;
+    }
+}

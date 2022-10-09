@@ -1,0 +1,35 @@
+<!--Лэйаут в виде набора страницы с боковой навигацией-->
+
+@using WasmSpa.Services.Generic
+@using WasmSpa.Models
+@inherits LayoutComponentBase
+
+@inject NavigationManager _navigationManager
+@inject LocalStorageService<User> _localStorage
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu/>
+    </div>
+
+    <div class="main">
+        <div class="top-row px-4">
+            <button name="login" target="_blank" @onclick="Logout" class="ml-md-auto">LogOut</button>
+        </div>
+
+        <div class="content px-4">
+            @Body
+        </div>
+    </div>
+</div>
+
+@code{
+    /// <summary>
+    /// Закончить текущую сессию пользователя.
+    /// </summary>
+    async Task Logout()
+    {
+        await _localStorage.Clear();
+        _navigationManager.NavigateTo("/login");
+    }
+}

@@ -1,0 +1,131 @@
+﻿<!--Страница логинки.-->
+
+@page "/login"
+@layout EmptyPageLayout
+
+@using WasmSpa.Models
+@using WasmSpa.Extensions
+@using WasmSpa.Services.Generic
+@using WasmSpa.Services.Users
+@using WasmSpa.Enums
+
+@inject NavigationManager _navigationManager
+@inject AuthenticationService _authenticationService
+@inject UsersDataStoreService _usersDataStoreService
+@inject JsAlertService _jsAlertService
+
+<EditForm Model="@_user">
+    <div class="login-page">
+        <div class="form">
+            <div class="login-form">
+                <InputText id="name" placeholder="name" @bind-Value="_name"></InputText>
+                <InputText type="password" id="password" placeholder="password" @bind-Value="_password"></InputText>
+                <div>
+                    <button type="button" @onclick="LoginUser">Sign In</button>
+                </div>
+                <div>
+                    <button type="button" @onclick="CreateUser">Sign Up</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</EditForm>
+
+@code
+{
+    private string _name = string.Empty;
+    private string _password = string.Empty;
+    private readonly User _user = new();
+
+    private async Task LoginUser()
+    {
+        if (IsNameOrPasswordEmpty())
+        {
+            await AlertError("Empty password or login field");
+            return;
+        }
+
+        var user = GetUserModel();
+
+        var savedUser = await GetSavedUser(user);
+
+        if (savedUser == null)
+        {
+            await AlertError("User does not exist");
+            _name = string.Empty;
+            _password = string.Empty;
+            return;
+        }
+
+        if (user.Name == savedUser.Name
+            && user.Password == savedUser.Password)
+        {
+            await _authenticationService.SetCurrentUser(savedUser);
+
+            _navigationManager.NavigateTo("/index");
+        }
+        else
+        {
+            await AlertError("Wrong login or password");
+        }
+    }
+
+    private async Task CreateUser()
+    {
+        if (IsNameOrPasswordEmpty())
+        {
+            await AlertError("Empty password or login field");
+            return;
+        }
+
+        var newUser = GetUserModel();
+
+        var savedUser = await GetSavedUser(newUser);
+
+        if (savedUser != null)
+        {
+            await AlertError("User already exists");
+            return;
+        }
+
+        await _usersDataStoreService.SaveUser(newUser);
+
+        await AlertSuccess("User has been added");
+
+        _name = string.Empty;
+        _password = string.Empty;
+    }
+
+    private User GetUserModel()
+    {
+        return new User
+        {
+            Name = _name,
+            Password = _password.ComputeSha256Hash(),
+            Role = UserRole.Default
+        };
+    }
+
+    private bool IsNameOrPasswordEmpty()
+    {
+        return string.IsNullOrEmpty(_name)
+            || string.IsNullOrEmpty(_password);
+    }
+
+    private async Task<User> GetSavedUser(User user)
+    {
+        var userName = user.Name;
+
+        return await _usersDataStoreService.GetUser(userName);
+    }
+
+    private async Task AlertSuccess(string message)
+    {
+        await _jsAlertService.Alert(message);
+    }
+
+    private async Task AlertError(string message)
+    {
+        await _jsAlertService.Alert(message);
+    }
+}

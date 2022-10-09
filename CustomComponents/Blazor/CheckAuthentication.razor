@@ -1,0 +1,26 @@
+﻿<!--Проверка аутентификации текущего пользователя.-->
+
+@using WasmSpa.Services.Users
+
+@inject NavigationManager _navigationManager
+@inject AuthenticationService _authenticationService
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckUserAuthentication();
+    }
+
+    /// <summary>
+    /// Проверка аутентификации текущего пользователя.
+    /// </summary>
+    private async Task CheckUserAuthentication()
+    {
+        var checkAuth = await _authenticationService.CheckUserAuthenticated();
+
+        if (checkAuth == false)
+        {
+            _navigationManager.NavigateTo("/login");
+        }
+    }
+}

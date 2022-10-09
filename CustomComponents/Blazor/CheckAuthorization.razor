@@ -1,0 +1,33 @@
+﻿<!--Проверка авторизации текущего пользователя.-->
+
+@using WasmSpa.Models
+@using WasmSpa.Services.Users
+
+@inherits CheckAuthorizationBase
+
+@inject AuthenticationService _authenticationService
+
+@if (CheckUserAuthorization())
+{
+    @PermDependentRenderFragment
+}
+
+@code{
+    private User _currentUser = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _currentUser = await _authenticationService.GetCurrentUser();
+    }
+
+    /// <summary>
+    /// Проверка авторизации текущего пользователя.
+    /// </summary>
+    /// <remarks>
+    /// Вынужденно получаем всю сущность пользователя чтобы не ловить исключение.
+    /// </remarks>
+    private bool CheckUserAuthorization()
+    {
+        return _currentUser != null && PermToRender == _currentUser.Role;
+    }
+}
